@@ -1,8 +1,8 @@
 name: Build and deploy .NET Core application to Function App BlobScanner.ResultProcessor
+ 
 on:
   workflow_dispatch:
 env:
-  AZURE_FUNCTIONAPP_NAME: 7hn7occu3yjrs-f
   AZURE_FUNCTIONAPP_PACKAGE_PATH: BlobScanner.ResultProcessor/published
   CONFIGURATION: Release
   DOTNET_CORE_VERSION: 6.0.x
@@ -25,6 +25,6 @@ jobs:
     - name: Deploy to Azure Function App
       uses: Azure/functions-action@v1
       with:
-        app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
-        publish-profile: ${{ secrets.blobscanner_resultprocessor_publish_profile }}
+        app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
+        publish-profile: ${{ secrets.BLOBSCANNER_RESULTPROCESSOR_PUBLISH_PROFILE }}
         package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
