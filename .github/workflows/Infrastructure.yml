@@ -1,0 +1,61 @@
+name: Infrastructure
+
+on:     
+
+  workflow_dispatch:  
+    inputs:
+      resourceGroup:
+        description: 'Resource Group'
+        required: true
+        default: 'blobscanner-rg'
+      location:
+        description: 'Location'
+        required: true
+        default: 'canadacentral' 
+      sourceStorageAccountId:
+        description: 'Source storage account id'
+        required: true
+      adminUsername:
+        description: 'Virtual machine admin username'
+        required: true
+      adminPassword:
+        description: 'Virtual machine admin password'
+        required: true
+
+jobs:
+ 
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+        with:
+          path: master
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy bicep
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az group create -g ${{ github.event.inputs.resourceGroup }} -l ${{ github.event.inputs.location }}
+            deploymentOutput=`az deployment group create -g ${{ github.event.inputs.resourceGroup }} -f ./Deployment/main.bicep -p sourceStorageAccountId=${{ github.event.inputs.sourceStorageAccountId }} -p adminUsername=${{ github.event.inputs.adminUsername }} -p adminUsername=${{ github.event.inputs.adminPassword }}`
+            echo keyVaultName=`echo $deploymentOutput  | jq -r .properties.outputs.keyVaultName.value` >> $GITHUB_ENV
+      
+      - name: Save Key Vault name
+        run: |
+          cd master
+          gh secret set KEYVAULT_NAME -b"${{ env.keyVaultName }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}          
+
+      - name: Deploy Services
+        run: |
+          cd master
+          gh workflow run BlobScanner.ResultProcessor
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}                          
